@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>เปิดของขวัญไหม? 🎁</title>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --accent:#FF5A7A;
+      --bg1:#fff7ec;
+      --bg2:#ffe2f1;
+      --text:#2b2b2b;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:"Prompt",system-ui,-apple-system,Segoe UI,Arial;
+      color:var(--text);
+      min-height:100svh;
+      background: radial-gradient(1200px 600px at 20% 10%, var(--bg2), transparent 60%),
+                  radial-gradient(1200px 600px at 80% 90%, var(--bg1), transparent 60%),
+                  linear-gradient(135deg, #fff, #fff5fb);
+      display:grid; place-items:center; padding:24px;
+      overflow:hidden;
+    }
+    .card{
+      width:min(920px, 95vw);
+      background:#fff;
+      border-radius:28px;
+      box-shadow:0 20px 60px rgba(0,0,0,.08);
+      padding:clamp(20px, 4vw, 40px);
+      text-align:center;
+      position:relative;
+    }
+    h1{ 
+      margin:8px 0 10px; line-height:1.15;
+      font-size:clamp(26px, 5.6vw, 46px);
+    }
+    .sub{
+      font-size:clamp(15px, 2.8vw, 19px);
+      opacity:.85; margin-bottom:20px;
+    }
+
+    /* เวทีสำหรับปุ่ม (ตำแหน่ง relative) */
+    .stage{
+      position:relative;
+      margin: 18px auto 6px;
+      width:min(640px, 90vw);
+      height: clamp(220px, 44vh, 360px);
+      border-radius:20px;
+      background: #fff7fb;
+      box-shadow: inset 0 0 0 2px rgba(255,90,122,.12);
+      overflow:hidden;
+      touch-action: manipulation;
+    }
+
+    .btn{
+      position:absolute; /* เพื่อจะย้ายหนีได้ */
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:0 22px; min-width:120px; height:56px; border-radius:16px;
+      font-weight:800; font-size:18px; letter-spacing:.2px;
+      border:2px solid var(--accent); background:#fff; color:var(--accent);
+      user-select:none; -webkit-user-select:none;
+      box-shadow:0 6px 18px rgba(255,90,122,.18);
+      cursor:pointer;
+      transition: transform .08s ease;
+    }
+    .btn.primary{
+      background:var(--accent); color:#fff;
+    }
+    .btn:active{ transform: translateY(1px) scale(.995); }
+
+    /* ตำแหน่งเริ่มต้น */
+    #yesBtn{ left:14%; top: 58%; }
+    #noBtn { right:14%; top: 20%; }
+
+    /* ข้อความด้านล่าง */
+    .meta{
+      margin-top:10px; font-size:14px; opacity:.7;
+    }
+
+    /* ลด motion ให้คนที่ตั้งค่าไว้ */
+    @media (prefers-reduced-motion: reduce){
+      .btn{ transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="card" aria-live="polite">
+    <h1>Congratulation na kub. I got something 4 u baby but you gotta answer this qusetion okay? 🎓🎁</h1>
+    <p class="sub">Do u miss me?! and สัญญาว่าจะน่ารักมาก ๆ Okay? 😉</p>
+
+    <div class="stage" id="stage" aria-label="พื้นที่ปุ่มคำตอบ">
+      <button id="yesBtn" class="btn primary" aria-label="ใช่ เปิดเลย">Yes</button>
+      <button id="noBtn" class="btn" aria-label="ไม่ เอาไว้ก่อน">Nope eieiei</button>
+    </div>
+
+    <p class="meta">Tip: ถ้าปุ่ม “ไม่” หนี ให้แตะไว ๆ หรือไล่จับให้ทัน! 😆</p>
+  </main>
+
+  <script>
+    const stage = document.getElementById('stage');
+    const yesBtn = document.getElementById('yesBtn');
+    const noBtn  = document.getElementById('noBtn');
+
+    // ไปหน้า Gift เมื่อกด "ใช่"
+    yesBtn.addEventListener('click', () => {
+      window.location.href = 'Gift4U.html';
+    });
+
+    // ฟังก์ชันสุ่มตำแหน่งใหม่ (ให้อยู่ในกรอบและไม่ชนขอบ)
+    function moveNoButton(avoidEl){
+      const stageRect = stage.getBoundingClientRect();
+      const noRect = noBtn.getBoundingClientRect();
+      const yesRect = yesBtn.getBoundingClientRect();
+
+      const btnW = noRect.width;
+      const btnH = noRect.height;
+
+      // padding กันชนเล็กน้อยไม่ให้ติดขอบ
+      const pad = 8;
+
+      // คำนวณช่วงที่ย้ายได้ภายใน stage
+      const minX = pad;
+      const minY = pad;
+      const maxX = stageRect.width  - btnW - pad;
+      const maxY = stageRect.height - btnH - pad;
+
+      // ลองสุ่มหลายรอบเพื่อเลี่ยงตำแหน่งทับกับปุ่ม "ใช่"
+      let attempts = 0;
+      let x = 0, y = 0;
+      do{
+        attempts++;
+        x = Math.random() * (maxX - minX) + minX;
+        y = Math.random() * (maxY - minY) + minY;
+
+        // กล่องของตำแหน่งใหม่ของ noBtn (ในพิกัด stage)
+        const newNo = {
+          left: x + stageRect.left,
+          top:  y + stageRect.top,
+          right: x + stageRect.left + btnW,
+          bottom:y + stageRect.top  + btnH
+        };
+
+        // ถ้าซ้อนกับ "ใช่" มากไป ให้สุ่มใหม่
+        const overlap = !(
+          newNo.right  < yesRect.left  ||
+          newNo.left   > yesRect.right ||
+          newNo.bottom < yesRect.top   ||
+          newNo.top    > yesRect.bottom
+        );
+
+        // หลบ pointer/touch ต้นทางด้วย (ถ้ามี)
+        let tooCloseToPointer = false;
+        if (avoidEl && avoidEl.clientX !== undefined){
+          const px = avoidEl.clientX, py = avoidEl.clientY;
+          const margin = Math.max(btnW, btnH) * 1.1;
+          if (px > newNo.left - margin && px < newNo.right + margin &&
+              py > newNo.top - margin  && py < newNo.bottom + margin){
+            tooCloseToPointer = true;
+          }
+        }
+
+        if (!overlap && !tooCloseToPointer) break;
+      } while(attempts < 20);
+
+      // ย้ายปุ่ม (พิกัดภายใน stage)
+      noBtn.style.left = x + 'px';
+      noBtn.style.top  = y + 'px';
+      noBtn.style.right = 'auto';
+    }
+
+    // หนีเมื่อเอาเมาส์เข้าใกล้ (เดสก์ท็อป)
+    noBtn.addEventListener('pointerenter', (ev) => {
+      if (ev.pointerType === 'mouse' || ev.pointerType === 'pen'){
+        moveNoButton(ev);
+      }
+    });
+
+    // หนีเมื่อกำลังจะคลิก (กันเผื่อยังจับไม่ได้)
+    noBtn.addEventListener('pointerdown', (ev) => {
+      moveNoButton(ev);
+    });
+
+    // หนีเมื่อแตะบนมือถือ (touch)
+    noBtn.addEventListener('touchstart', (ev) => {
+      const t = ev.touches[0];
+      moveNoButton(t);
+      // กันคลิกติด
+      ev.preventDefault();
+    }, {passive:false});
+
+    // ดักกรณีมีคน "จับได้" แล้วกดไม่ทัน — ก็ให้หนีอีกรอบแทนการยืนยัน
+    noBtn.addEventListener('click', (ev) => {
+      moveNoButton(ev);
+    });
+
+    // ปรับขนาดใหม่ให้ปุ่มยังอยู่ในกรอบ
+    window.addEventListener('resize', () => moveNoButton());
+
+    // เข้าถึงด้วยคีย์บอร์ด: ถ้ากด Tab มาหาปุ่ม "ไม่" แล้วกด Space/Enter จะให้หนีแทน
+    noBtn.addEventListener('keydown', (e)=>{
+      if (e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        moveNoButton();
+      }
+    });
+  </script>
+</body>
+</html>

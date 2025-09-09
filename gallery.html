@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>สไลด์รูปของเรา 💖</title>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{ --accent:#FF5A7A; --bg:#fff7fb; --ink:#222; }
+    *{ box-sizing:border-box }
+    html,body{ height:100% }
+    body{
+      margin:0; font-family:"Prompt",system-ui,Segoe UI,Arial;
+      background: radial-gradient(900px 600px at 90% 10%, #ffe3ef, transparent 60%), var(--bg);
+      color:var(--ink); display:grid; grid-template-rows:auto 1fr auto; min-height:100svh;
+    }
+    header, footer{ text-align:center; padding:14px 10px }
+    header h1{ margin:2px 0 4px; font-size:clamp(20px,5vw,28px) }
+    header p{ margin:0; opacity:.7; font-size:clamp(12px,2.6vw,14px) }
+
+    /* เวทีโชว์รูป */
+    .stage{
+      position:relative;
+      width:min(1100px, 96vw);
+      aspect-ratio: 16 / 10;  /* desktop/wide */
+      background:#fff;
+      border-radius:18px;
+      box-shadow:0 16px 50px rgba(0,0,0,.12);
+      overflow:hidden;
+      margin:0 auto;
+    }
+    .track{
+      display:flex;
+      height:100%;
+      transition: transform .45s cubic-bezier(.2,.7,.2,1);
+      touch-action: pan-y;
+    }
+    .slide{
+      min-width:100%;
+      height:100%;
+      position:relative;
+      overflow:hidden;
+      background:#fff;
+      padding:12px 12px 44px;   /* เผื่อพื้นที่ caption */
+      box-sizing:border-box;
+    }
+    .slide img{
+      width:100%;
+      height:100%;
+      object-fit:contain;   /* เห็นรูปเต็มไม่ครอป */
+      display:block;
+      border-radius:12px;
+      box-shadow:0 12px 30px rgba(0,0,0,.12);
+    }
+    .caption{
+      position:absolute;
+      left:0; right:0; bottom:8px;
+      text-align:center;
+      color:#fff;
+      font-weight:600;
+      text-shadow:0 2px 12px rgba(0,0,0,.6);
+      pointer-events:none;
+    }
+
+    /* ปุ่มควบคุม */
+    .ctrl{
+      position:absolute; top:50%; transform:translateY(-50%);
+      z-index:5;
+      background:rgba(255,255,255,.9);
+      border:none; width:42px; height:42px;
+      border-radius:999px;
+      box-shadow:0 8px 20px rgba(0,0,0,.15);
+      cursor:pointer; display:grid; place-items:center;
+      color:var(--accent); font-weight:800;
+    }
+    #prev{ left:10px }
+    #next{ right:10px }
+
+    /* จุดบอกตำแหน่ง */
+    .dots{
+      position:absolute; left:0; right:0; bottom:10px;
+      display:flex; gap:8px; justify-content:center; z-index:6;
+    }
+    .dot{
+      width:8px; height:8px; border-radius:999px;
+      background:rgba(0,0,0,.22);
+      border:2px solid rgba(255,255,255,.7);
+      cursor:pointer;
+    }
+    .dot.active{ background:var(--accent); border-color:#fff; }
+
+    footer .bar{
+      display:flex; gap:10px; justify-content:center; align-items:center; padding:10px;
+    }
+    .btn{
+      display:inline-block; padding:10px 14px; border-radius:12px;
+      border:2px solid var(--accent);
+      background:#fff; color:var(--accent);
+      text-decoration:none; font-weight:800;
+    }
+    .btn:hover{ background:var(--accent); color:#fff }
+    .counter{ opacity:.7; font-size:14px }
+
+    /* มือถือ */
+    @media (max-width: 800px){
+      .stage{ width:96vw; aspect-ratio: 3 / 4; }
+      .slide{ padding:8px 8px 42px; }
+      .ctrl{ width:36px; height:36px; }
+      .caption{ font-size:14px; }
+    }
+    @media (max-width: 430px){
+      .stage{ aspect-ratio: 2.8 / 5; }
+      .ctrl{ width:32px; height:32px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ภาพความทรงจำของเรา 💌</h1>
+    <p>ปัดซ้าย-ขวา หรือใช้ปุ่ม ◀ ▶ เพื่อเลื่อนรูป</p>
+  </header>
+
+  <main class="stage" id="stage" aria-live="polite">
+    <button id="prev" class="ctrl" aria-label="รูปก่อนหน้า">◀</button>
+    <div class="track" id="track"></div>
+    <button id="next" class="ctrl" aria-label="รูปถัดไป">▶</button>
+    <div class="dots" id="dots"></div>
+  </main>
+
+  <footer class="bar">
+    <a class="btn" href="Gift4U.html">← กลับหน้ากล่องของขวัญ</a>
+    <span class="counter" id="count">1 / 1</span>
+  </footer>
+
+  <script>
+    // ---- ใส่รูปตรงนี้ ----
+    const images = [
+      { src: "images/first-met.jpg", alt: "First met" },
+      { src: "images/toowindy.jpg", alt: "Too windy" },
+      { src: "images/too-focus-girl.jpg", alt: "Too focus girl" },
+      { src: "images/us.jpg", alt: "Us" },
+      { src: "images/oops.jpg", alt: "Oops" },
+      { src: "images/sleepy-girl.jpg", alt: "Sleepy girl" },
+    ];
+    // ----------------------
+
+    const track = document.getElementById('track');
+    const dotsWrap = document.getElementById('dots');
+    const countEl = document.getElementById('count');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+
+    // สร้างสไลด์
+    images.forEach(({src, alt}, idx) => {
+      const slide = document.createElement('div');
+      slide.className = 'slide';
+      const img = new Image();
+      img.src = src;
+      img.alt = alt;
+      img.loading = 'lazy';
+      slide.appendChild(img);
+
+      const cap = document.createElement('div');
+      cap.className = 'caption';
+      cap.textContent = alt;
+      slide.appendChild(cap);
+
+      track.appendChild(slide);
+
+      const dot = document.createElement('div');
+      dot.className = 'dot';
+      dot.addEventListener('click', ()=>go(idx));
+      dotsWrap.appendChild(dot);
+    });
+
+    let i=0, N=images.length, x0=null, dx=0, dragging=false;
+
+    function update(){
+      track.style.transform = `translateX(${-i*100}%)`;
+      [...dotsWrap.children].forEach((d,idx)=> d.classList.toggle('active', idx===i));
+      countEl.textContent = `${i+1} / ${N}`;
+    }
+    function go(n){ i=(n+N)%N; update(); }
+    function next(){ go(i+1); }
+    function prev(){ go(i-1); }
+
+    nextBtn.onclick=next; prevBtn.onclick=prev;
+    window.addEventListener('keydown', e=>{
+      if(e.key==='ArrowRight') next();
+      if(e.key==='ArrowLeft') prev();
+    });
+
+    // ปัดซ้าย-ขวา
+    const stage=document.getElementById('stage');
+    stage.addEventListener('pointerdown', e=>{ dragging=true; x0=e.clientX; dx=0; stage.setPointerCapture(e.pointerId); });
+    stage.addEventListener('pointermove', e=>{
+      if(!dragging) return;
+      dx=e.clientX-x0;
+      track.style.transform=`translateX(calc(${-i*100}% + ${dx}px))`;
+    });
+    stage.addEventListener('pointerup', e=>{
+      if(!dragging) return; dragging=false;
+      const th=stage.clientWidth*0.12;
+      if(dx<-th) next(); else if(dx>th) prev(); else update();
+      dx=0;
+    });
+
+    update();
+  </script>
+</body>
+</html>
